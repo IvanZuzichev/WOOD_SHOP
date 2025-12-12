@@ -25,7 +25,7 @@
 }
 
 .title {
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 38px;
   font-weight: 600;
   line-height: 1.2;
@@ -50,7 +50,7 @@
 }
 
 .sectionTitle {
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 20px;
   font-weight: 500;
   line-height: 1.2;
@@ -72,7 +72,7 @@
 }
 
 .paragraph {
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 16px;
   font-weight: 400;
   line-height: 1.2;
@@ -91,7 +91,7 @@
 }
 
 .listItem {
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 16px;
   font-weight: 400;
   line-height: 1.2;
@@ -101,5 +101,4 @@
 
 .listItem:last-child {
   margin-bottom: 0;
-}
-
+}/*# sourceMappingURL=TermsOfService.module.css.map */

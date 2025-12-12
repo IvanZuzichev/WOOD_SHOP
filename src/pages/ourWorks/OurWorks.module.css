@@ -1,3 +1,4 @@
+@charset "UTF-8";
 /* Стили для страницы работ из наших тканей */
 .worksGrid {
   display: grid;
@@ -16,10 +17,9 @@
     grid-template-columns: repeat(3, 1fr);
   }
 }
-
 /* Десктоп (1024px и выше) - 4 колонки */
 @media (min-width: 1024px) {
   .worksGrid {
     grid-template-columns: repeat(4, 1fr);
   }
-}
+}/*# sourceMappingURL=OurWorks.module.css.map */

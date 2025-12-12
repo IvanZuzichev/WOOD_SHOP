@@ -1,3 +1,4 @@
+@charset "UTF-8";
 /* WorkPage.module.css */
 .container {
   box-sizing: border-box;
@@ -48,8 +49,10 @@
 .mainImage img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  object-position: center;
+  -o-object-fit: cover;
+     object-fit: cover;
+  -o-object-position: center;
+     object-position: center;
 }
 
 .thumbnailImages {
@@ -71,18 +74,20 @@
 }
 
 .thumbnail:hover {
-  border-color: #9b1e1c;
+  border-color: #3a0f0e;
 }
 
 .thumbnailActive {
-  border: 2px solid #9b1e1c;
+  border: 2px solid #340A09;
 }
 
 .thumbnail img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  object-position: center;
+  -o-object-fit: cover;
+     object-fit: cover;
+  -o-object-position: center;
+     object-position: center;
 }
 
 .workInfo {
@@ -108,7 +113,7 @@
 }
 
 .workTitle {
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-style: normal;
   font-weight: 600;
   font-size: 38px;
@@ -121,7 +126,7 @@
 }
 
 .workCategory {
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-style: normal;
   font-weight: 500;
   font-size: 16px;
@@ -145,7 +150,7 @@
 }
 
 .sectionTitle {
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-style: normal;
   font-weight: 600;
   font-size: 20px;
@@ -163,7 +168,7 @@
 }
 
 .descriptionText {
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-style: normal;
   font-weight: 400;
   font-size: 16px;
@@ -176,12 +181,12 @@
 }
 
 .readMoreButton {
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-style: normal;
   font-weight: 500;
   font-size: 14px;
   line-height: 1.2;
-  color: #9b1e1c;
+  color: #340A09;
   background: none;
   border: none;
   cursor: pointer;
@@ -192,7 +197,7 @@
 }
 
 .readMoreButton:hover {
-  color: #860202;
+  color: #471413;
 }
 
 .placeholderImage {
@@ -203,7 +208,7 @@
   justify-content: center;
   background: #F1F0EE;
   color: #888888;
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-size: 16px;
 }
 
@@ -214,8 +219,9 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(16, 16, 16, 0.20);
-  backdrop-filter: blur(5px);
+  background: rgba(16, 16, 16, 0.2);
+  -webkit-backdrop-filter: blur(5px);
+          backdrop-filter: blur(5px);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -246,7 +252,8 @@
   width: 560px;
   height: 650px;
   border-radius: 10px;
-  object-fit: cover;
+  -o-object-fit: cover;
+     object-fit: cover;
 }
 
 .modalFooter {
@@ -300,13 +307,13 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  background: rgba(155, 30, 28, 0.9);
+  background: #340A09;
   transition: background-color 0.2s;
   z-index: 1001;
 }
 
 .navButton:hover {
-  background: #860202;
+  background: #4a1211;
 }
 
 .navButton:disabled {
@@ -376,8 +383,10 @@
 .productImg {
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  object-position: center;
+  -o-object-fit: cover;
+     object-fit: cover;
+  -o-object-position: center;
+     object-position: center;
 }
 
 .productContent {
@@ -390,7 +399,7 @@
 }
 
 .productName {
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-style: normal;
   font-weight: 600;
   font-size: 16px;
@@ -420,7 +429,7 @@
 }
 
 .oldPrice {
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-style: normal;
   font-weight: 400;
   font-size: 12px;
@@ -431,12 +440,12 @@
 }
 
 .currentPrice {
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-style: normal;
   font-weight: 600;
   font-size: 14px;
   line-height: 1.2;
-  color: #9b1e1c;
+  color: #340A09;
   white-space: nowrap;
 }
 
@@ -444,7 +453,7 @@
   width: 30px;
   height: 30px;
   border-radius: 30px;
-  background: #9b1e1c;
+  background: #340A09;
   border: none;
   display: flex;
   align-items: center;
@@ -458,7 +467,7 @@
 }
 
 .cartButton:hover {
-  background: #860202;
+  background: #481211;
 }
 
 /* Стили для секции тканей */
@@ -471,7 +480,7 @@
 }
 
 .fabricsTitle {
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-style: normal;
   font-weight: 600;
   font-size: 20px;
@@ -486,7 +495,7 @@
 }
 
 .link {
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
   font-style: normal;
   font-weight: 500;
   font-size: 16px;
@@ -502,176 +511,142 @@
   .container {
     padding: 40px 50px;
   }
-
   .content {
     gap: 40px;
   }
-
   .workInfo {
     width: calc(100% - 440px);
   }
 }
-
 @media (max-width: 1024px) {
   .container {
     padding: 32px 24px;
   }
-
   .content {
     flex-direction: column;
     gap: 32px;
   }
-
   .imagesSection {
     width: 710px;
     /* Для планшетов - ширина */
   }
-
   .mainImage {
     height: 712px;
     /* Для планшетов - высота */
   }
-
   .thumbnailImages {
     justify-content: center;
   }
-
   .workInfo {
     width: 100%;
   }
-
   .workHeader {
     flex-direction: column;
     gap: 16px;
   }
-
   .workTitleSection {
     width: 100%;
   }
-
   /* Адаптивность для карточек товаров на планшетах */
   .productsRow {
     flex-wrap: wrap;
     justify-content: center;
     padding-right: 0;
   }
-
   .productCard {
     width: calc(50% - 8px);
     max-width: 363px;
   }
 }
-
 @media (max-width: 768px) {
   .container {
     padding: 24px 16px;
   }
-
   .imagesSection {
     width: 372px;
     /* Для телефонов - ширина */
   }
-
   .mainImage {
     height: 480px;
     /* Для телефонов - высота */
   }
-
   .thumbnail {
     height: 80px;
     width: 70px;
   }
-
   .workTitle {
     font-size: 28px;
   }
-
   .modalImage {
     width: 100%;
     height: auto;
     max-height: 70vh;
   }
-
   .navButton {
     width: 40px;
     height: 40px;
   }
-
   .prevButton {
     left: 10px;
   }
-
   .nextButton {
     right: 10px;
   }
-
   .modalFooter {
     flex-direction: column;
     gap: 10px;
   }
-
   /* Адаптивность для карточек товаров на мобильных - один столбец */
   .featuredProducts {
     flex-direction: column;
     align-items: center;
   }
-
   .productsRow {
     flex-direction: column;
     align-items: center;
     gap: 16px;
     padding-right: 0;
   }
-
   .productsRow:first-child,
   .productsRow:last-child {
     padding-right: 0;
     justify-content: center;
   }
-
   .productCard {
     width: 100%;
     max-width: 363px;
   }
 }
-
 @media (max-width: 480px) {
   .container {
     padding: 16px 12px;
   }
-
   .imagesSection {
     width: 100%;
     max-width: 372px;
     margin: 0 auto;
   }
-
   .mainImage {
     height: 480px;
   }
-
   .workTitle {
     font-size: 24px;
   }
-
   .productCard {
     width: 100%;
     max-width: none;
   }
-
   .productName {
     font-size: 15px;
   }
-
   .productImage {
     width: 70px;
     height: 90px;
   }
 }
-
 /* Стили для кнопки корзины */
 .cartButton {
-  background: #9b1e1c;
+  background: #340A09;
   border: none;
   border-radius: 6px;
   width: 32px;
@@ -685,11 +660,11 @@
 }
 
 .cartButton:hover:not(:disabled) {
-  background: #860202;
+  background: #431211;
 }
 
 .cartButton:disabled {
   background: #cccccc;
   cursor: not-allowed;
   opacity: 0.6;
-}
+}/*# sourceMappingURL=WorkPage.module.css.map */

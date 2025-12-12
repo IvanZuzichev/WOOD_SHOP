@@ -1,3 +1,4 @@
+@charset "UTF-8";
 /* Базовые стили для карточки товара */
 .productCard {
   background: white;
@@ -22,22 +23,24 @@
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  object-fit: cover;
+  -o-object-fit: cover;
+     object-fit: cover;
 }
 
 /* Индикатор точек */
 .dotsIndicator {
   position: absolute;
-  left: 8px;
-  bottom: 8px;
+  left: 10px;
+  bottom: 10px;
   display: inline-flex;
   padding: 3px;
   justify-content: center;
   align-items: center;
   gap: 3px;
   border-radius: 26px;
-  background: rgba(255, 255, 255, 0.20);
-  backdrop-filter: blur(5px);
+  background: rgba(255, 255, 255, 0.2);
+  -webkit-backdrop-filter: blur(5px);
+          backdrop-filter: blur(5px);
   z-index: 10;
 }
 
@@ -52,7 +55,7 @@
   width: 4px;
   height: 4px;
   border-radius: 17px;
-  background: rgba(255, 255, 255, 0.60);
+  background: rgba(255, 255, 255, 0.6);
 }
 
 /* Контент по умолчанию */
@@ -91,7 +94,7 @@
 }
 
 .productPrice {
-  color: #9B1E1C;
+  color: #101010;
   font-weight: 700;
   line-height: 1.2;
 }
@@ -244,12 +247,15 @@
   text-align: center;
   border: none;
   outline: none;
-  appearance: textfield;
+  -webkit-appearance: textfield;
+     -moz-appearance: textfield;
+          appearance: textfield;
 }
 
 .quantityInput::-webkit-outer-spin-button,
 .quantityInput::-webkit-inner-spin-button {
-  appearance: none;
+  -webkit-appearance: none;
+          appearance: none;
   margin: 0;
 }
 
@@ -266,7 +272,7 @@
   gap: 10px;
   align-items: center;
   justify-content: center;
-  padding: 8px 14px;
+  padding: 10px 14px;
   border-radius: 8px;
   width: 100%;
   transition: background-color 0.2s ease;
@@ -277,16 +283,16 @@
 }
 
 .cartButtonActive {
-  background: #9B1E1C;
+  background: #340A09;
   color: white;
 }
 
 .cartButtonActive:hover {
-  background: #860202;
+  background: #432928;
 }
 
 .cartButtonDisabled {
-  background: #9B1E1C;
+  background: #340A09;
   color: white;
   opacity: 0.7;
   cursor: not-allowed;
@@ -304,55 +310,44 @@
     width: 323px;
     height: 457px;
   }
-
   .imageContainer {
     height: 380px;
   }
-
   .productImage {
     height: 433px;
     width: 338px;
   }
-
   .productName {
     font-size: 16px;
     font-family: Inter;
   }
-
   .productPrice {
     font-size: 16px;
   }
-
   .hoverCardVisible {
     height: 608px;
   }
-
   .cartButton {
     font-size: 16.8px;
   }
-
   .buttonText {
     font-size: 16.8px;
   }
 }
-
 /* Стили для планшетов (744px - 1023px) - 229x351 */
 @media (max-width: 1023px) and (min-width: 744px) {
   .productCard {
     width: 229px;
     height: 351px;
   }
-
   .imageContainer {
     height: 243px;
   }
-
   .productImage {
     height: 311px;
     width: 243px;
     aspect-ratio: 243/311;
   }
-
   .productName {
     font-size: 14px;
     font-family: Inter;
@@ -360,50 +355,41 @@
     line-height: 120%;
     color: #101010;
   }
-
   .productPrice {
     font-size: 14px;
     font-weight: 700;
     line-height: 120%;
-    color: #9B1E1C;
+    color: #340A09;
   }
-
   .hoverCardVisible {
     height: 500px;
   }
-
   .cartButton {
     font-size: 14px;
   }
-
   .buttonText {
     font-size: 14px;
   }
-
   .quantityButtonText,
   .quantityInput,
   .totalPrice {
     font-size: 16px;
   }
 }
-
 /* Стили для телефонов (до 743px) - 181x285 */
 @media (max-width: 743px) {
   .productCard {
     width: 181px;
     height: 285px;
   }
-
   .imageContainer {
     height: 189px;
   }
-
   .productImage {
     height: 241px;
     width: 189px;
     aspect-ratio: 189/241;
   }
-
   .productName {
     font-size: 14px;
     font-family: Inter;
@@ -411,47 +397,38 @@
     line-height: 120%;
     color: #101010;
   }
-
   .productPrice {
     font-size: 14px;
     font-weight: 700;
     line-height: 120%;
-    color: #9B1E1C;
+    color: #340A09;
   }
-
   .hoverCardVisible {
     height: 450px;
   }
-
   .cartButton {
     font-size: 14px;
   }
-
   .buttonText {
     font-size: 14px;
   }
-
   .quantityButtonText,
   .quantityInput,
   .totalPrice {
     font-size: 16px;
   }
-
   .quantityButton,
   .quantityInput {
     height: 40px;
     padding: 6px 12px;
   }
-
   .quantityButton {
     width: 45px;
   }
-
   .quantityInput {
     width: 60px;
   }
 }
-
 /* Блок скидок */
 .discountsBlock {
   display: flex;
@@ -510,7 +487,7 @@
 }
 
 .discountPrice {
-  color: #9B1E1C;
+  color: #340A09;
   font-size: 14px;
   font-weight: 600;
   line-height: 1.2;
@@ -591,4 +568,4 @@
 .quantityButton:disabled {
   cursor: not-allowed;
   opacity: 0.5;
-}
+}/*# sourceMappingURL=ProductCard.module.css.map */

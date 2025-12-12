@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  app-dev:
+    build:
+      context: .
+      target: development
+    container_name: woodshop-dev
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - CHOKIDAR_USEPOLLING=true
+    command: npm run dev
+
+  app-prod:
+    build:
+      context: .
+      target: production
+    container_name: woodshop-prod
+    ports:
+      - "3001:3000"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+
+  app-test:
+    build:
+      context: .
+      target: development
+    container_name: woodshop-test
+    command: npm test
+    environment:
+      - NODE_ENV=test
+    volumes:
+      - .:/app
+      - /app/node_modules
+
+  app-lint:
+    build:
+      context: .
+      target: development
+    container_name: woodshop-lint
+    command: npm run lint
+    volumes:
+      - .:/app
+      - /app/node_modules
+
+  app-type-check:
+    build:
+      context: .
+      target: development
+    container_name: woodshop-type-check
+    command: npx tsc --noEmit
+    volumes:
+      - .:/app
+      - /app/node_modules

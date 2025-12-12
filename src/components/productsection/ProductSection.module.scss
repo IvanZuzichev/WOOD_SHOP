@@ -1,0 +1,26 @@
+.productGrid {
+  display: grid;
+  gap: 20px;
+  width: 100%;
+}
+
+/* Для десктопа: 4 колонки */
+@media (min-width: 1440px) {
+  .productGrid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Для планшета: 3 колонки */
+@media (min-width: 744px) and (max-width: 1439px) {
+  .productGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Для телефона: 2 колонки */
+@media (max-width: 743px) {
+  .productGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

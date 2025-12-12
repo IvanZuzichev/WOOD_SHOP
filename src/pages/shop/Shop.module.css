@@ -1,3 +1,4 @@
+@charset "UTF-8";
 /* Стили для блока "О нас" */
 .aboutSection {
   max-width: 1440px;
@@ -19,7 +20,6 @@
     color: #888;
     text-align: center;
   }
-
   .aboutSubtitle {
     font-family: Inter;
     font-size: 32px;
@@ -30,7 +30,6 @@
     color: #101010;
     text-align: center;
   }
-
   .aboutCardText {
     font-family: Inter;
     font-size: 16px;
@@ -40,15 +39,12 @@
     color: #101010;
     text-align: center;
   }
-
   .aboutCardTextBold {
     font-weight: 700;
   }
-
   .aboutCardTextMedium {
     font-weight: 500;
   }
-
   .aboutFooter {
     font-family: Inter;
     font-size: 16px;
@@ -58,19 +54,16 @@
     color: #101010;
     text-align: center;
   }
-
   .aboutCards {
     flex-direction: row;
     gap: 16px;
   }
-
   .aboutCard {
     height: auto;
     min-height: 250px;
     padding: 32px;
   }
 }
-
 /* Стили для мобильных устройств (до 743px) */
 @media (max-width: 743px) {
   .aboutTitle {
@@ -82,7 +75,6 @@
     color: #888;
     text-align: center;
   }
-
   .aboutSubtitle {
     font-family: Inter;
     font-size: 26px;
@@ -92,7 +84,6 @@
     color: #101010;
     text-align: center;
   }
-
   .aboutCardText {
     font-family: Inter;
     font-size: 14px;
@@ -102,15 +93,12 @@
     color: #101010;
     text-align: center;
   }
-
   .aboutCardTextBold {
     font-weight: 700;
   }
-
   .aboutCardTextMedium {
     font-weight: 500;
   }
-
   .aboutFooter {
     font-family: Inter;
     font-size: 14px;
@@ -120,16 +108,12 @@
     color: #101010;
     text-align: center;
   }
-
   .aboutCards {
     flex-direction: column;
     gap: 16px;
   }
-
   .aboutCard {
     height: auto;
     min-height: 200px;
   }
-
-
-}
+}/*# sourceMappingURL=Shop.module.css.map */

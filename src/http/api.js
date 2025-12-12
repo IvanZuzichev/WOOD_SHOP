@@ -1,7 +1,6 @@
 // src/http/api.js
 // Базовый URL API (можно вынести в переменные окружения)
-// Поддерживаем оба варианта: /api/v1/ (новый) и /api/ (старый для обратной совместимости)
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:1339/api';
+const API_URL = import.meta.env.VITE_API_URL || 'https://cms.centertkani.ru/api';
 
 // Утилита для работы с куками
 const cookieUtils = {
@@ -36,7 +35,6 @@ const cookieUtils = {
 
 // Утилита для получения токена из всех возможных источников
 const getAuthToken = () => {
-  // Пробуем получить токен из разных источников в порядке приоритета
   const token =
     localStorage.getItem('authToken') ||
     cookieUtils.get('authToken') ||
@@ -47,7 +45,6 @@ const getAuthToken = () => {
 };
 
 // Утилита для получения заголовков с авторизацией
-// src/http/api.js - обновите getHeaders
 const getHeaders = (includeAuth = true, isFormData = false) => {
   const headers = {};
 
@@ -57,20 +54,13 @@ const getHeaders = (includeAuth = true, isFormData = false) => {
 
   if (includeAuth) {
     const token = getAuthToken();
-
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
-      console.log('📤 Заголовок Authorization установлен:', {
-        tokenLength: token.length,
-        tokenStart: token.substring(0, 20) + '...',
-        fullHeader: `Bearer ${token}`
-      });
     } else {
       console.warn('⚠️ getHeaders - Токен не найден, запрос без авторизации');
     }
   }
 
-  console.log('📤 Итоговые заголовки запроса:', headers);
   return headers;
 };
 
@@ -80,17 +70,15 @@ class ApiService {
     this.baseURL = baseURL;
   }
 
-  // Улучшенная обработка ошибок с поддержкой нового формата
   async _handleResponse(response) {
     console.log('🔵 API Response Status:', response.status, response.statusText);
 
     if (!response.ok) {
       let errorMessage = `HTTP error! status: ${response.status}`;
+      let errorDetails = null;
 
-      // Специфичные сообщения для разных статусов
       if (response.status === 401) {
         errorMessage = "Необходима авторизация";
-        // Очищаем невалидный токен
         localStorage.removeItem('authToken');
       } else if (response.status === 403) {
         errorMessage = "Доступ запрещен";
@@ -101,27 +89,32 @@ class ApiService {
       }
 
       try {
-        // Клонируем response для чтения, так как response.json() можно вызвать только один раз
         const responseClone = response.clone();
         const errorData = await responseClone.json();
+        errorDetails = errorData;
 
-        console.error('🔴 API Error Response:', {
-          status: response.status,
-          statusText: response.statusText,
-          errorData
-        });
-
-        // Новый формат ошибок: { error: true, message: "..." }
-        // Приоритет: сообщение из ответа > стандартное сообщение по статусу
-        if (errorData.message) {
+        if (errorData.error) {
+          const strapiError = errorData.error;
+          if (strapiError.details && strapiError.details.errors) {
+            const validationErrors = strapiError.details.errors.map(err =>
+              `${err.path.join('.')}: ${err.message}`
+            ).join(', ');
+            errorMessage = `Ошибка валидации: ${validationErrors}`;
+          } else if (strapiError.message) {
+            errorMessage = strapiError.message;
+          }
+        } else if (errorData.message) {
           errorMessage = errorData.message;
-        } else if (errorData.error && typeof errorData.error === 'string') {
-          errorMessage = errorData.error;
-        } else if (typeof errorData === 'string') {
-          errorMessage = errorData;
+        } else if (errorData.data === null && errorData.error) {
+          const err = errorData.error;
+          if (err.message) {
+            errorMessage = err.message;
+          } else if (err.name) {
+            errorMessage = `Ошибка ${err.name}`;
+          }
         }
+
       } catch (parseError) {
-        // Если не удалось распарсить JSON, пытаемся прочитать как текст
         try {
           const text = await response.text();
           if (text) {
@@ -130,93 +123,61 @@ class ApiService {
         } catch {
           // Если не удалось прочитать, используем стандартное сообщение
         }
-
-        console.error('🔴 Failed to parse error response:', parseError);
       }
 
       const error = new Error(errorMessage);
       error.status = response.status;
       error.statusText = response.statusText;
+      error.details = errorDetails;
       throw error;
     }
 
-    // Если ответ пустой (204 No Content), возвращаем null
     if (response.status === 204) {
       return null;
     }
 
     const data = await response.json();
-    console.log('🟢 API Success Data:', data);
 
-    // Обработка нового формата ответов: { success: true, data: {...} }
-    // Если есть success: false, это ошибка
     if (data.success === false || data.error === true) {
       const error = new Error(data.message || 'Ошибка запроса');
       error.status = response.status;
       throw error;
     }
 
-    // Если success: true, возвращаем данные (без обертки success)
-    // Для обратной совместимости также поддерживаем старый формат
     if (data.success === true) {
-      // Убираем success из ответа, возвращаем только данные
       const { success, ...rest } = data;
       return rest;
     }
 
-    // Старый формат (без success) - возвращаем как есть
     return data;
   }
 
-  // Универсальный метод для GET запросов
   async get(endpoint, params = {}, includeAuth = true) {
     try {
       const queryString = new URLSearchParams(params).toString();
       const url = `${this.baseURL}${endpoint}${queryString ? `?${queryString}` : ''}`;
 
-      console.log('API GET Request:', {
-        url,
-        endpoint,
-        baseURL: this.baseURL,
-        includeAuth,
-        headers: getHeaders(includeAuth)
-      });
+      console.log('API GET Request:', { url });
 
       const response = await fetch(url, {
         method: 'GET',
         headers: getHeaders(includeAuth),
       });
 
-      console.log('API GET Response:', {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok,
-        headers: Object.fromEntries(response.headers.entries())
-      });
-
       return await this._handleResponse(response);
     } catch (error) {
       console.error('API GET Error:', error);
-      console.error('Error details:', {
-        message: error.message,
-        stack: error.stack,
-        status: error.status
-      });
       throw error;
     }
   }
 
-  // Универсальный метод для POST запросов
   async post(endpoint, data = {}, includeAuth = true, isFormData = false) {
     try {
       const body = isFormData ? data : JSON.stringify(data);
 
       console.log('API POST Request:', {
         url: `${this.baseURL}${endpoint}`,
-        endpoint,
-        includeAuth,
-        isFormData,
-        body: isFormData ? '[FormData]' : body
+        isFormData
       });
 
       const response = await fetch(`${this.baseURL}${endpoint}`, {
@@ -225,26 +186,13 @@ class ApiService {
         body: body,
       });
 
-      console.log('API POST Response:', {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok,
-        headers: Object.fromEntries(response.headers.entries())
-      });
-
       return await this._handleResponse(response);
     } catch (error) {
       console.error('API POST Error:', error);
-      console.error('Error details:', {
-        message: error.message,
-        stack: error.stack,
-        status: error.status
-      });
       throw error;
     }
   }
 
-  // Универсальный метод для PUT запросов
   async put(endpoint, data = {}, includeAuth = true, isFormData = false) {
     try {
       const body = isFormData ? data : JSON.stringify(data);
@@ -261,27 +209,14 @@ class ApiService {
     }
   }
 
-  // src/http/api.js - ОБНОВИТЕ метод delete
   async delete(endpoint, data = {}, includeAuth = true) {
     try {
-      console.log('🗑️ API DELETE Request:', {
-        url: `${this.baseURL}${endpoint}`,
-        endpoint,
-        includeAuth,
-        data,
-        headers: getHeaders(includeAuth)
-      });
+      console.log('🗑️ API DELETE Request:', { url: `${this.baseURL}${endpoint}` });
 
       const response = await fetch(`${this.baseURL}${endpoint}`, {
         method: 'DELETE',
         headers: getHeaders(includeAuth),
         body: data && Object.keys(data).length > 0 ? JSON.stringify(data) : undefined,
-      });
-
-      console.log('🗑️ API DELETE Response:', {
-        status: response.status,
-        statusText: response.statusText,
-        ok: response.ok
       });
 
       return await this._handleResponse(response);
@@ -291,71 +226,6 @@ class ApiService {
     }
   }
 
-  // src/store/UserStore.jsx - ОБНОВЛЕННЫЙ метод deleteAccount
-  async deleteAccount() {
-    runInAction(() => {
-      this._isLoading = true;
-      this._error = null;
-    });
-
-    try {
-      console.log('🗑️ UserStore.deleteAccount - начало удаления аккаунта');
-
-      // ПРОВЕРЯЕМ ТОКЕН ИЗ РАЗНЫХ ИСТОЧНИКОВ
-      const tokenFromLocalStorage = localStorage.getItem('authToken');
-      const tokenFromCookie = cookieUtils.get('authToken');
-      const tokenFromAPI = api.getAuthToken();
-
-      console.log('🔐 Токены из разных источников:', {
-        localStorage: tokenFromLocalStorage ? 'есть' : 'нет',
-        cookie: tokenFromCookie ? 'есть' : 'нет',
-        api: tokenFromAPI ? 'есть' : 'нет'
-      });
-
-      // Используем токен из localStorage (основной источник)
-      const token = tokenFromLocalStorage || tokenFromCookie;
-      if (!token) {
-        throw new Error('Токен авторизации не найден');
-      }
-
-      // Устанавливаем токен в API
-      api.setAuthToken(token);
-      console.log('🔐 Токен установлен в API:', token.substring(0, 20) + '...');
-
-      // ДЕЛАЕМ ЗАПРОС С ПРОВЕРКОЙ АВТОРИЗАЦИИ
-      console.log('👤 Удаление текущего аккаунта через кастомный endpoint');
-
-      // Используем authAPI.deleteAccount вместо прямого вызова api.delete
-      const response = await authAPI.deleteAccount();
-      console.log('✅ Аккаунт успешно удален:', response);
-
-      // Очищаем данные авторизации
-      this.clearAuth();
-
-      return {
-        success: true,
-        message: 'Аккаунт успешно удален'
-      };
-
-    } catch (error) {
-      console.error('❌ UserStore.deleteAccount - ошибка:', error);
-
-      runInAction(() => {
-        this._error = error.message || 'Ошибка удаления аккаунта';
-      });
-
-      return {
-        success: false,
-        error: this._error
-      };
-    } finally {
-      runInAction(() => {
-        this._isLoading = false;
-      });
-    }
-  }
-
-  // Метод для установки токена авторизации
   setAuthToken(token) {
     if (token) {
       localStorage.setItem('authToken', token);
@@ -364,7 +234,6 @@ class ApiService {
     }
   }
 
-  // Метод для получения токена
   getAuthToken() {
     return getAuthToken();
   }
@@ -373,608 +242,876 @@ class ApiService {
 // Создаем экземпляр API сервиса
 const api = new ApiService();
 
-// Специфичные методы для работ
-export const worksAPI = {
-  // Получить все работы с пагинацией
-  getAll: async (page = 1, limit = 12) => {
-    return api.get('/works', {
-      'populate': '*',
-      'pagination[page]': page,
-      'pagination[pageSize]': limit
-    }, false);
+// Моковые данные для материалов дерева (ткани для дерева/лдсп/мдф)
+const mockWoodMaterials = [
+  {
+    id: 1,
+    title: "Шпон ясеня натуральный",
+    description: "Натуральный шпон ясеня для отделки мебели и интерьера",
+    price: 850,
+    discount: 15,
+    discount_price: 722,
+    article: "SHVON-ASH-001",
+    composition: "Натуральный шпон ясеня",
+    width: "630 мм",
+    density: "0.65 г/см³",
+    country: "Россия",
+    category: "Шпон",
+    brand: "WoodMaster",
+    is_new: true,
+    images: [
+      {
+        url: "/materials/wood/1/1.jpg",
+        alt: "Шпон ясеня"
+      },
+      {
+        url: "/materials/wood/1/2.jpg",
+        alt: "Шпон ясеня - текстура"
+      }
+    ],
+    stock: 45,
+    characteristics: {
+      thickness: "0.6 мм",
+      length: "2500 мм",
+      moisture: "8%",
+      fire_resistance: "B2"
+    }
   },
+  {
+    id: 2,
+    title: "Пленка ПВХ под дуб",
+    description: "ПВХ пленка с текстурой дуба для оклейки МДФ и ДСП",
+    price: 320,
+    discount: 0,
+    discount_price: 320,
+    article: "PVK-DUB-002",
+    composition: "Поливинилхлорид",
+    width: "1370 мм",
+    density: "1.4 г/см³",
+    country: "Германия",
+    category: "Пленки",
+    brand: "Renolit",
+    is_new: false,
+    images: [
+      {
+        url: "/materials/wood/2/1.jpg",
+        alt: "Пленка ПВХ дуб"
+      }
+    ],
+    stock: 120,
+    characteristics: {
+      thickness: "0.4 мм",
+      roll_length: "50 м",
+      adhesive: "Клейкая основа",
+      temperature_range: "-20°C до +80°C"
+    }
+  },
+  {
+    id: 3,
+    title: "Ламинированное ДСП Эггер",
+    description: "Ламинированная древесно-стружечная плита премиум класса",
+    price: 1850,
+    discount: 10,
+    discount_price: 1665,
+    article: "LDS-EGG-003",
+    composition: "ДСП, меламиновая пленка",
+    width: "2070 мм",
+    density: "650 кг/м³",
+    country: "Австрия",
+    category: "ЛДСП",
+    brand: "Egger",
+    is_new: true,
+    images: [
+      {
+        url: "/materials/wood/3/1.jpg",
+        alt: "ЛДСП Эггер"
+      },
+      {
+        url: "/materials/wood/3/2.jpg",
+        alt: "ЛДСП структура"
+      }
+    ],
+    stock: 28,
+    characteristics: {
+      thickness: "16 мм",
+      size: "2800x2070 мм",
+      formaldehyde: "E0.5",
+      weight: "70 кг"
+    }
+  },
+  {
+    id: 4,
+    title: "МДФ крашеный матовый",
+    description: "Окрашенная МДФ плита матового покрытия",
+    price: 2150,
+    discount: 5,
+    discount_price: 2042,
+    article: "MDF-PNT-004",
+    composition: "МДФ, полиуретановая краска",
+    width: "1220 мм",
+    density: "850 кг/м³",
+    country: "Россия",
+    category: "МДФ",
+    brand: "Kronospan",
+    is_new: false,
+    images: [
+      {
+        url: "/materials/wood/4/1.jpg",
+        alt: "МДФ крашеный"
+      }
+    ],
+    stock: 35,
+    characteristics: {
+      thickness: "18 мм",
+      size: "2440x1220 мм",
+      color: "Белый матовый",
+      surface: "Гладкая"
+    }
+  },
+  {
+    id: 5,
+    title: "Шпон ореха радиальный срез",
+    description: "Элитный шпон ореха радиального среза",
+    price: 1250,
+    discount: 20,
+    discount_price: 1000,
+    article: "SHVON-WAL-005",
+    composition: "Натуральный шпон ореха",
+    width: "600 мм",
+    density: "0.68 г/см³",
+    country: "Италия",
+    category: "Шпон",
+    brand: "Alpi",
+    is_new: true,
+    images: [
+      {
+        url: "/materials/wood/5/1.jpg",
+        alt: "Шпон ореха"
+      },
+      {
+        url: "/materials/wood/5/2.jpg",
+        alt: "Текстура ореха"
+      }
+    ],
+    stock: 18,
+    characteristics: {
+      thickness: "0.7 мм",
+      length: "2400 мм",
+      cut_type: "Радиальный",
+      grade: "A"
+    }
+  },
+  {
+    id: 6,
+    title: "Пленка акриловая под ясень",
+    description: "Акриловая пленка 3D эффект под ясень",
+    price: 450,
+    discount: 0,
+    discount_price: 450,
+    article: "ACR-ASH-006",
+    composition: "Акрил, ПВХ",
+    width: "1250 мм",
+    density: "1.2 г/см³",
+    country: "Корея",
+    category: "Пленки",
+    brand: "LG Hausys",
+    is_new: true,
+    images: [
+      {
+        url: "/materials/wood/6/1.jpg",
+        alt: "Акриловая пленка"
+      }
+    ],
+    stock: 75,
+    characteristics: {
+      thickness: "0.5 мм",
+      roll_length: "30 м",
+      effect: "3D текстура",
+      scratch_resistance: "Высокая"
+    }
+  },
+  {
+    id: 7,
+    title: "ЛДСП Kronospan глянец",
+    description: "Ламинированное ДСП с глянцевой поверхностью",
+    price: 1950,
+    discount: 12,
+    discount_price: 1716,
+    article: "LDS-KRN-007",
+    composition: "ДСП, глянцевая пленка",
+    width: "1830 мм",
+    density: "680 кг/м³",
+    country: "Польша",
+    category: "ЛДСП",
+    brand: "Kronospan",
+    is_new: false,
+    images: [
+      {
+        url: "/materials/wood/7/1.jpg",
+        alt: "ЛДСП глянец"
+      }
+    ],
+    stock: 42,
+    characteristics: {
+      thickness: "25 мм",
+      size: "2620x1830 мм",
+      surface: "Глянцевая",
+      color: "Черный"
+    }
+  },
+  {
+    id: 8,
+    title: "МДФ фрезерованный",
+    description: "Фрезерованная МДФ плита для декоративных элементов",
+    price: 2750,
+    discount: 8,
+    discount_price: 2530,
+    article: "MDF-FRE-008",
+    composition: "МДФ высокой плотности",
+    width: "1220 мм",
+    density: "900 кг/м³",
+    country: "Германия",
+    category: "МДФ",
+    brand: "Egger",
+    is_new: true,
+    images: [
+      {
+        url: "/materials/wood/8/1.jpg",
+        alt: "Фрезерованный МДФ"
+      },
+      {
+        url: "/materials/wood/8/2.jpg",
+        alt: "Узор МДФ"
+      }
+    ],
+    stock: 22,
+    characteristics: {
+      thickness: "22 мм",
+      size: "2440x1220 мм",
+      pattern: "Рельефный",
+      paintability: "Отличная"
+    }
+  }
+];
 
-  // Получить работу по ID - ДОБАВЬТЕ populate=*
-  getById: async (id) => {
-    return api.get(`/works/${id}`, {
-      'populate': '*' // ВАЖНО: добавляем для загрузки изображений
-    }, false);
+// Моковые категории для деревянных материалов
+const mockWoodCategories = [
+  {
+    id: 1,
+    name: "Шпон",
+    slug: "shpon",
+    description: "Натуральный шпон для отделки мебели",
+    image: "/categories/shon.jpg",
+    product_count: 12
   },
+  {
+    id: 2,
+    name: "Пленки",
+    slug: "plenki",
+    description: "ПВХ и акриловые пленки для оклейки",
+    image: "/categories/plenki.jpg",
+    product_count: 25
+  },
+  {
+    id: 3,
+    name: "ЛДСП",
+    slug: "ldsp",
+    description: "Ламинированное ДСП различных марок",
+    image: "/categories/ldsp.jpg",
+    product_count: 18
+  },
+  {
+    id: 4,
+    name: "МДФ",
+    slug: "mdf",
+    description: "МДФ плиты различных плотностей",
+    image: "/categories/mdf.jpg",
+    product_count: 15
+  }
+];
+
+// Моковые бренды для деревянных материалов
+const mockWoodBrands = [
+  {
+    id: 1,
+    name: "Egger",
+    slug: "egger",
+    description: "Австрийский производитель древесных плит",
+    logo: "/brands/egger.png",
+    country: "Австрия"
+  },
+  {
+    id: 2,
+    name: "Kronospan",
+    slug: "kronospan",
+    description: "Мировой лидер в производстве древесных плит",
+    logo: "/brands/kronospan.png",
+    country: "Польша"
+  },
+  {
+    id: 3,
+    name: "Alpi",
+    slug: "alpi",
+    description: "Итальянский производитель элитного шпона",
+    logo: "/brands/alpi.png",
+    country: "Италия"
+  },
+  {
+    id: 4,
+    name: "Renolit",
+    slug: "renolit",
+    description: "Немецкий производитель ПВХ пленок",
+    logo: "/brands/renolit.png",
+    country: "Германия"
+  },
+  {
+    id: 5,
+    name: "LG Hausys",
+    slug: "lg-hausys",
+    description: "Корейский производитель акриловых пленок",
+    logo: "/brands/lg-hausys.png",
+    country: "Корея"
+  },
+  {
+    id: 6,
+    name: "WoodMaster",
+    slug: "woodmaster",
+    description: "Российский производитель шпона",
+    logo: "/brands/woodmaster.png",
+    country: "Россия"
+  }
+];
+
+// Утилита для фильтрации моковых данных
+const filterMockProducts = (products, params = {}) => {
+  let filtered = [...products];
+  
+  if (params.categoryId) {
+    filtered = filtered.filter(product => 
+      product.category.toLowerCase() === params.categoryId.toLowerCase()
+    );
+  }
+  
+  if (params.brandId) {
+    filtered = filtered.filter(product => 
+      product.brand.toLowerCase() === params.brandId.toLowerCase()
+    );
+  }
+  
+  if (params.is_new) {
+    filtered = filtered.filter(product => product.is_new === true);
+  }
+  
+  if (params.discount) {
+    filtered = filtered.filter(product => product.discount > 0);
+  }
+  
+  if (params.search) {
+    const searchTerm = params.search.toLowerCase();
+    filtered = filtered.filter(product => 
+      product.title.toLowerCase().includes(searchTerm) ||
+      product.description.toLowerCase().includes(searchTerm) ||
+      product.article.toLowerCase().includes(searchTerm)
+    );
+  }
+  
+  if (params.sort) {
+    switch(params.sort) {
+      case 'price_asc':
+        filtered.sort((a, b) => (a.discount_price || a.price) - (b.discount_price || b.price));
+        break;
+      case 'price_desc':
+        filtered.sort((a, b) => (b.discount_price || b.price) - (a.discount_price || a.price));
+        break;
+      case 'newest':
+        filtered.sort((a, b) => b.id - a.id);
+        break;
+      case 'discount':
+        filtered.sort((a, b) => b.discount - a.discount);
+        break;
+    }
+  }
+  
+  const page = params.page || 1;
+  const pageSize = params.pageSize || 12;
+  const startIndex = (page - 1) * pageSize;
+  const endIndex = startIndex + pageSize;
+  
+  const paginatedData = filtered.slice(startIndex, endIndex);
+  
+  return {
+    data: paginatedData,
+    meta: {
+      pagination: {
+        page: page,
+        pageSize: pageSize,
+        pageCount: Math.ceil(filtered.length / pageSize),
+        total: filtered.length
+      }
+    }
+  };
 };
 
-// Специфичные методы для каталога товаров
-export const catalogAPI = {
-  // Получить все товары с фильтрацией
-  getProducts: async (params = {}) => {
-    const strapiParams = {
-      'populate': '*', // Важно: запрашиваем все связанные данные
-      'publicationState': 'live'
-    };
-
-    // Пагинация
-    if (params.page) strapiParams['pagination[page]'] = params.page;
-    if (params.pageSize) strapiParams['pagination[pageSize]'] = params.pageSize;
-
-    // Фильтры для Strapi v4
-    if (params['filters[category][id][$eq]']) {
-      strapiParams['filters[category][id][$eq]'] = params['filters[category][id][$eq]'];
-    }
-    if (params.categoryId) {
-      strapiParams['filters[category][id][$eq]'] = params.categoryId;
-    }
-    if (params.brandId) {
-      strapiParams['filters[brand][id][$eq]'] = params.brandId;
-    }
-
-    console.log('📡 Strapi параметры для товаров:', strapiParams);
-    return api.get('/products', strapiParams, false);
-  },
-
-  // Получить товар по ID
-  getProduct: async (id) => {
-    return api.get(`/products/${id}`, {
-      'populate': '*' // Запрашиваем все связанные данные
-    }, false);
-  },
-
-  // Получить категории
-  getCategories: async () => {
-    return api.get('/categories', {
-      'populate': '*',
-      'pagination[pageSize]': 100
-    }, false);
-  },
-
-  // Получить бренды
-  getBrands: async () => {
-    return api.get('/brands', {
-      'populate': '*',
-      'pagination[pageSize]': 100
-    }, false);
-  },
-};
-
-// Методы для аутентификации
-export const authAPI = {
-  // Вход - правильный endpoint для Strapi
-  login: async (email, password) => {
-    const response = await api.post('/auth/local', {
-      identifier: email, // Strapi использует 'identifier' вместо 'email'
-      password: password
-    }, false);
-
-    // После успешного входа получаем полные данные пользователя
-    if (response.jwt) {
-      api.setAuthToken(response.jwt);
-      const userData = await api.get('/users/me?populate=avatar', {}, true);
-      return {
-        ...response,
-        user: userData
-      };
-    }
-
-    return response;
-  },
-
-  // Регистрация через кастомный endpoint
-  register: async (userData) => {
-    const registerData = {
-      username: userData.email,
-      email: userData.email,
-      password: userData.password,
-      // Отправляем дополнительные поля
-      firstName: userData.firstName,
-      lastName: userData.lastName,
-      phone: userData.phone
-    };
-
-    console.log('🔵 Отправляем данные регистрации в кастомный endpoint:', registerData);
-
-    // Используем кастомный endpoint вместо стандартного Strapi
-    return api.post('/registration/register', registerData, false);
-  },
-
-  // Получить информацию о текущем пользователе
-  checkAuth: async () => {
-    return api.get('/users/me?populate=avatar', {}, true);
-  },
-
-
-  deleteAccount: async () => {
-    try {
-      console.log('🗑️ authAPI.deleteAccount - отправка запроса через /auth/account');
-      return await api.delete('/auth/account', {}, true);
-    } catch (error) {
-      console.error('❌ authAPI.deleteAccount - ошибка:', error);
-      throw error;
-    }
-  },
-
-
-  // Обновление профиля
-  updateProfile: async (userData) => {
-    const updateData = {};
-
-    // Используем правильные имена полей
-    if (userData.firstName !== undefined) updateData.firstName = userData.firstName;
-    if (userData.lastName !== undefined) updateData.lastName = userData.lastName;
-    if (userData.email !== undefined) updateData.email = userData.email;
-    if (userData.phone !== undefined) updateData.phone = userData.phone; // ВАЖНО: добавляем phone
-    if (userData.avatar !== undefined) updateData.avatar = userData.avatar;
-
-    console.log('🔵 Отправляем данные обновления профиля:', updateData);
-
-    // Получаем ID текущего пользователя
-    const currentUser = await api.get('/users/me', {}, true);
-    const userId = currentUser.id;
-
-    console.log('👤 ID пользователя для обновления:', userId);
-
-    // Обновляем пользователя
-    const response = await api.put(`/users/${userId}`, updateData, true);
-
-    console.log('✅ Профиль обновлен, ответ:', response);
-
-    return response;
-  },
-
-  // Изменить пароль
-  changePassword: async (oldPassword, newPassword) => {
-    return api.post('/auth/change-password', {
-      currentPassword: oldPassword,
-      password: newPassword,
-      passwordConfirmation: newPassword
-    }, true);
-  },
-
-  // Восстановление пароля - отправить код
-  forgotPassword: async (email) => {
-    return api.post('/auth/forgot-password', { email }, false);
-  },
-
-  // Восстановление пароля - сброс пароля
-  resetPassword: async (code, password, passwordConfirmation) => {
-    return api.post('/auth/reset-password', {
-      code,
-      password,
-      passwordConfirmation
-    }, false);
-  },
-
-  // Выход из системы
-  logout: async () => {
-    return api.post('/auth/logout', {}, true);
-  },
-};
-
-// Методы для корзины - ОБНОВЛЕННЫЕ С АВТОРИЗАЦИЕЙ
+// Моковый API для корзины (cartAPI)
 export const cartAPI = {
-  // Получить корзину - теперь с авторизацией
+  // Получить корзину - моковые данные
   getCart: async () => {
-    console.log('cartAPI.getCart: Начало запроса');
-    try {
-      const result = await api.get('/cart', {}, true); // true - includeAuth
-      console.log('cartAPI.getCart: Успешный ответ:', result);
-      return result;
-    } catch (error) {
-      console.error('cartAPI.getCart: Ошибка:', error);
-      throw error;
-    }
-  },
-
-  // Добавить товар в корзину - с авторизацией
-  addToCart: async (productId, quantity = 1) => {
-    console.log('cartAPI.addToCart: Добавление товара:', { productId, quantity });
-    try {
-      const result = await api.post('/cart/add', {
-        product_id: productId,
-        quantity: quantity
-      }, true); // true - includeAuth
-      console.log('cartAPI.addToCart: Успешный ответ:', result);
-      return result;
-    } catch (error) {
-      console.error('cartAPI.addToCart: Ошибка:', error);
-      throw error;
-    }
-  },
-
-  // Обновить количество товара - с авторизацией
-  updateCart: async (productId, quantity) => {
-    console.log('cartAPI.updateCart: Обновление товара:', { productId, quantity });
-    try {
-      const result = await api.post('/cart/update', {
-        product_id: productId,
-        quantity: quantity
-      }, true); // true - includeAuth
-      console.log('cartAPI.updateCart: Успешный ответ:', result);
-      return result;
-    } catch (error) {
-      console.error('cartAPI.updateCart: Ошибка:', error);
-      throw error;
-    }
-  },
-
-  // Удалить товар из корзины - с авторизацией
-  removeFromCart: async (productId) => {
-    console.log('cartAPI.removeFromCart: Удаление товара:', { productId });
-    try {
-      const result = await api.post('/cart/remove', {
-        product_id: productId
-      }, true); // true - includeAuth
-      console.log('cartAPI.removeFromCart: Успешный ответ:', result);
-      return result;
-    } catch (error) {
-      console.error('cartAPI.removeFromCart: Ошибка:', error);
-      throw error;
-    }
-  },
-
-  // Очистить корзину - с авторизацией
-  clearCart: async () => {
-    console.log('cartAPI.clearCart: Очистка корзины');
-    try {
-      const result = await api.post('/cart/clear', {}, true); // true - includeAuth
-      console.log('cartAPI.clearCart: Успешный ответ:', result);
-      return result;
-    } catch (error) {
-      console.error('cartAPI.clearCart: Ошибка:', error);
-      throw error;
-    }
-  },
-};
-
-// Методы для админ-панели
-export const adminAPI = {
-  // Товары
-  getProducts: async (params = {}) => {
-    return api.get('/admin/products', params, true);
-  },
-
-  createProduct: async (productData) => {
-    const formData = new FormData();
-    formData.append('title', productData.title);
-    if (productData.description) formData.append('description', productData.description);
-    formData.append('price', productData.price);
-    if (productData.stock !== undefined) formData.append('stock', productData.stock);
-    if (productData.category_id) formData.append('category_id', productData.category_id);
-    if (productData.brand_id) formData.append('brand_id', productData.brand_id);
-    if (productData.image) formData.append('image', productData.image);
-    if (productData.discount !== undefined) formData.append('discount', productData.discount);
-    if (productData.discount_price !== undefined) formData.append('discount_price', productData.discount_price);
-    if (productData.article) formData.append('article', productData.article);
-    if (productData.composition) formData.append('composition', productData.composition);
-    if (productData.width) formData.append('width', productData.width);
-    if (productData.density) formData.append('density', productData.density);
-    if (productData.country) formData.append('country', productData.country);
-    formData.append('is_new', productData.is_new ? 'true' : 'false');
-    if (productData.images && productData.images.length > 0) {
-      productData.images.forEach((image) => {
-        formData.append('images', image);
-      });
-    }
-
-    return api.post('/admin/products', formData, true, true);
-  },
-
-  updateProduct: async (productId, productData) => {
-    const formData = new FormData();
-    if (productData.title) formData.append('title', productData.title);
-    if (productData.description !== undefined) formData.append('description', productData.description);
-    if (productData.price !== undefined) formData.append('price', productData.price);
-    if (productData.stock !== undefined) formData.append('stock', productData.stock);
-    if (productData.category_id !== undefined) formData.append('category_id', productData.category_id);
-    if (productData.brand_id !== undefined) formData.append('brand_id', productData.brand_id);
-    if (productData.image) formData.append('image', productData.image);
-    if (productData.discount !== undefined) formData.append('discount', productData.discount);
-    if (productData.discount_price !== undefined) formData.append('discount_price', productData.discount_price);
-    if (productData.article !== undefined) formData.append('article', productData.article || '');
-    if (productData.composition !== undefined) formData.append('composition', productData.composition || '');
-    if (productData.width !== undefined) formData.append('width', productData.width || '');
-    if (productData.density !== undefined) formData.append('density', productData.density || '');
-    if (productData.country !== undefined) formData.append('country', productData.country || '');
-    if (productData.is_new !== undefined) formData.append('is_new', productData.is_new ? 'true' : 'false');
-    if (productData.images && productData.images.length > 0) {
-      productData.images.forEach((image) => {
-        formData.append('images', image);
-      });
-    }
-
-    return api.put(`/admin/products/${productId}`, formData, true, true);
-  },
-
-  deleteProduct: async (productId) => {
-    return api.delete(`/admin/products/${productId}`, true);
-  },
-
-  // Заказы
-  getAllOrders: async (params = {}) => {
-    return api.get('/admin/orders', params, true);
-  },
-
-  getOrder: async (orderId) => {
-    return api.get(`/admin/orders/${orderId}`, {}, true);
-  },
-
-  updateOrderStatus: async (orderId, status, comment) => {
-    return api.put(`/admin/orders/${orderId}/status`, {
-      status: status,
-      comment: comment
-    }, true);
-  },
-
-  // Пользователи
-  getUsers: async () => {
-    return api.get('/admin/users', {}, true);
-  },
-
-  getUser: async (userId) => {
-    return api.get(`/admin/users/${userId}`, {}, true);
-  },
-
-  updateUser: async (userId, userData) => {
-    return api.put(`/admin/users/${userId}`, userData, true);
-  },
-
-  deleteUser: async (userId) => {
-    return api.delete(`/admin/users/${userId}`, true);
-  },
-
-  // Статистика
-  getStats: async () => {
-    return api.get('/admin/stats', {}, true);
-  },
-
-  // Категории
-  getCategories: async () => {
-    return api.get('/admin/categories', {}, true);
-  },
-
-  createCategory: async (categoryData) => {
-    return api.post('/admin/categories', categoryData, true);
-  },
-
-  updateCategory: async (categoryId, categoryData) => {
-    return api.put(`/admin/categories/${categoryId}`, categoryData, true);
-  },
-
-  deleteCategory: async (categoryId) => {
-    return api.delete(`/admin/categories/${categoryId}`, true);
-  },
-
-  // Бренды
-  getBrands: async () => {
-    return api.get('/admin/brands', {}, true);
-  },
-
-  createBrand: async (brandData) => {
-    return api.post('/admin/brands', brandData, true);
-  },
-
-  updateBrand: async (brandId, brandData) => {
-    return api.put(`/admin/brands/${brandId}`, brandData, true);
-  },
-
-  deleteBrand: async (brandId) => {
-    return api.delete(`/admin/brands/${brandId}`, true);
-  },
-
-  // Работы
-  getWorks: async () => {
-    return api.get('/admin/works', {}, true);
-  },
-
-  createWork: async (workData) => {
-    const formData = new FormData();
-    formData.append('title', workData.title);
-    if (workData.description) formData.append('description', workData.description);
-    if (workData.image) formData.append('image', workData.image);
-    if (workData.link) formData.append('link', workData.link);
-    if (workData.tags) formData.append('tags', workData.tags);
-
-    return api.post('/admin/works', formData, true, true);
-  },
-
-  updateWork: async (workId, workData) => {
-    const formData = new FormData();
-    if (workData.title) formData.append('title', workData.title);
-    if (workData.description !== undefined) formData.append('description', workData.description);
-    if (workData.image) formData.append('image', workData.image);
-    if (workData.link !== undefined) formData.append('link', workData.link || '');
-    if (workData.tags !== undefined) formData.append('tags', workData.tags || '');
-
-    return api.put(`/admin/works/${workId}`, formData, true, true);
-  },
-
-  deleteWork: async (workId) => {
-    return api.delete(`/admin/works/${workId}`, true);
-  },
-};
-
-// Обратная совместимость: старые методы для tkans (перенаправляем на catalog)
-export const tkansAPI = {
-  getAll: async (params = {}) => {
-    return catalogAPI.getProducts(params);
-  },
-  getById: async (id) => {
-    return catalogAPI.getProduct(id);
-  },
-  getTypes: async () => {
-    return catalogAPI.getCategories();
-  },
-  getBrands: async () => {
-    return catalogAPI.getBrands();
-  },
-};
-
-// Методы для контактной формы
-export const contactAPI = {
-  sendMessage: async (data) => {
-    console.log('📧 Данные формы для отправки на почту:', data);
-
-    // TODO: Настроить реальную отправку на почту
-    // Временная заглушка - всегда успешная отправка
+    console.log('cartAPI.getCart: Моковый запрос корзины');
     return new Promise((resolve) => {
       setTimeout(() => {
-        console.log('✅ Письмо отправлено на почту организации');
-        console.log('📋 Содержимое письма:');
-        console.log('   Имя:', data.name);
-        console.log('   Телефон:', data.phone);
-        console.log('   Сообщение:', data.message);
-        resolve({ success: true, message: 'Письмо отправлено' });
-      }, 1000);
+        // Возвращаем пустую корзину или моковые данные
+        const mockCart = {
+          items: [],
+          total: 0,
+          total_items: 0
+        };
+        console.log('cartAPI.getCart: Моковая корзина возвращена');
+        resolve(mockCart);
+      }, 300);
+    });
+  },
+
+  // Добавить товар в корзину - мок
+  addToCart: async (productId, quantity = 1) => {
+    console.log('cartAPI.addToCart: Моковое добавление товара:', { productId, quantity });
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const mockResponse = {
+          success: true,
+          message: 'Товар добавлен в корзину',
+          cart_item: {
+            product_id: productId,
+            quantity: quantity
+          }
+        };
+        console.log('cartAPI.addToCart: Моковый ответ:', mockResponse);
+        resolve(mockResponse);
+      }, 300);
+    });
+  },
+
+  // Обновить количество товара - мок
+  updateCart: async (productId, quantity) => {
+    console.log('cartAPI.updateCart: Моковое обновление товара:', { productId, quantity });
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const mockResponse = {
+          success: true,
+          message: 'Корзина обновлена'
+        };
+        console.log('cartAPI.updateCart: Моковый ответ:', mockResponse);
+        resolve(mockResponse);
+      }, 300);
+    });
+  },
+
+  // Удалить товар из корзины - мок
+  removeFromCart: async (productId) => {
+    console.log('cartAPI.removeFromCart: Моковое удаление товара:', { productId });
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const mockResponse = {
+          success: true,
+          message: 'Товар удален из корзины'
+        };
+        console.log('cartAPI.removeFromCart: Моковый ответ:', mockResponse);
+        resolve(mockResponse);
+      }, 300);
+    });
+  },
+
+  // Очистить корзину - мок
+  clearCart: async () => {
+    console.log('cartAPI.clearCart: Моковая очистка корзины');
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const mockResponse = {
+          success: true,
+          message: 'Корзина очищена'
+        };
+        console.log('cartAPI.clearCart: Моковый ответ:', mockResponse);
+        resolve(mockResponse);
+      }, 300);
     });
   }
 };
 
-// В разделе методов для заказов добавьте:
-export const ordersAPI = {
-  // Создать заказ из корзины
-  createOrder: async (orderData = {}) => {
-    return api.post('/orders', orderData, true);
+// Обновляем методы для каталога товаров - используем моковые данные
+export const catalogAPI = {
+  // Получить все товары с фильтрацией
+  getProducts: async (params = {}) => {
+    console.log('📡 Получение моковых товаров с параметрами:', params);
+    
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const result = filterMockProducts(mockWoodMaterials, params);
+        console.log('✅ Моковые товары возвращены:', result.data.length, 'шт.');
+        resolve(result);
+      }, 300);
+    });
   },
 
-  // Получить список заказов пользователя - базовый populate
-  getMyOrders: async (params = {}) => {
-    return api.get('/orders', {
-      ...params,
-      'populate[items]': '*', // Базовый populate для компонента
-    }, true);
+  // Получить товар по ID
+  getProduct: async (id) => {
+    console.log('📡 Получение мокового товара по ID:', id);
+    
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        const product = mockWoodMaterials.find(p => p.id == id);
+        if (product) {
+          console.log('✅ Моковый товар найден:', product.title);
+          resolve({ data: product });
+        } else {
+          console.log('❌ Моковый товар не найден');
+          reject(new Error('Товар не найден'));
+        }
+      }, 200);
+    });
   },
 
-  // Получить список заказов с глубоким populate
-  getMyOrdersDeep: async (params = {}) => {
-    return api.get('/orders', {
-      ...params,
-      'populate': 'deep,3' // Глубокий populate до 3 уровня
-    }, true);
+  // Получить категории
+  getCategories: async () => {
+    console.log('📡 Получение моковых категорий');
+    
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        console.log('✅ Моковые категории возвращены:', mockWoodCategories.length, 'шт.');
+        resolve({ data: mockWoodCategories });
+      }, 200);
+    });
   },
 
-  // Получить список заказов с вложенным populate
-  getMyOrdersNested: async (params = {}) => {
-    return api.get('/orders', {
-      ...params,
-      'populate[0]': 'items', // populate компонента items
-      'populate[1]': 'items.image' // populate изображений внутри компонента
-    }, true);
+  // Получить бренды
+  getBrands: async () => {
+    console.log('📡 Получение моковых брендов');
+    
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        console.log('✅ Моковые бренды возвращены:', mockWoodBrands.length, 'шт.');
+        resolve({ data: mockWoodBrands });
+      }, 200);
+    });
   },
 
-
-  // Получить завершенные заказы
-  getCompletedOrders: async (params = {}) => {
-    return api.get('/orders', {
-      ...params,
-      'filters[status][$eq]': 'confirmed', // Фильтр по статусу
-      'populate[items]': '*',
-    }, true);
+  // Получить новинки
+  getNewArrivals: async (limit = 4) => {
+    console.log('📡 Получение моковых новинок');
+    
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const newArrivals = mockWoodMaterials
+          .filter(product => product.is_new)
+          .slice(0, limit);
+        console.log('✅ Моковые новинки возвращены:', newArrivals.length, 'шт.');
+        resolve({ data: newArrivals });
+      }, 150);
+    });
   },
 
-  // Получить детали заказа
-  getOrder: async (orderId) => {
-    return api.get(`/orders/${orderId}`, {
-      'populate[items][populate][image]': '*'
-    }, true);
+  // Получить товары со скидкой
+  getDiscounted: async (limit = 4) => {
+    console.log('📡 Получение моковых товаров со скидкой');
+    
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const discounted = mockWoodMaterials
+          .filter(product => product.discount > 0)
+          .sort((a, b) => b.discount - a.discount)
+          .slice(0, limit);
+        console.log('✅ Моковые товары со скидкой возвращены:', discounted.length, 'шт.');
+        resolve({ data: discounted });
+      }, 150);
+    });
   },
 
-  // Обновить статус заказа
-  updateOrderStatus: async (orderId, status, comment) => {
-    return api.put(`/orders/${orderId}`, {
-      data: {
-        status: status
-      }
-    }, true);
-  },
+  // Получить случайные товары
+  getRandomProducts: async (limit = 4) => {
+    console.log('📡 Получение случайных моковых товаров');
+    
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const shuffled = [...mockWoodMaterials]
+          .sort(() => 0.5 - Math.random())
+          .slice(0, limit);
+        console.log('✅ Случайные моковые товары возвращены:', shuffled.length, 'шт.');
+        resolve({ data: shuffled });
+      }, 150);
+    });
+  }
 };
 
-// Функция для получения URL изображения из данных Strapi
+// Обновляем методы для tkans (для обратной совместимости)
+export const tkansAPI = {
+  getAll: async (params = {}) => {
+    return catalogAPI.getProducts(params);
+  },
+  
+  getById: async (id) => {
+    return catalogAPI.getProduct(id);
+  },
+  
+  getTypes: async () => {
+    return catalogAPI.getCategories();
+  },
+  
+  getBrands: async () => {
+    return catalogAPI.getBrands();
+  },
+  
+  // Новые методы для магазина тканей
+  fetchTkans: async () => {
+    console.log('📡 Загрузка моковых тканей');
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        console.log('✅ Моковые ткани загружены:', mockWoodMaterials.length, 'шт.');
+        resolve(mockWoodMaterials);
+      }, 500);
+    });
+  },
+  
+  fetchTypes: async () => {
+    console.log('📡 Загрузка моковых категорий (типов)');
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        console.log('✅ Моковые категории загружены');
+        resolve(mockWoodCategories);
+      }, 300);
+    });
+  },
+  
+  fetchBrands: async () => {
+    console.log('📡 Загрузка моковых брендов');
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        console.log('✅ Моковые бренды загружены');
+        resolve(mockWoodBrands);
+      }, 300);
+    });
+  }
+};
+
+// Моковый API для аутентификации
+export const authAPI = {
+  // Вход - мок
+  login: async (email, password) => {
+    console.log('authAPI.login: Моковый вход:', { email });
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const mockResponse = {
+          jwt: 'mock-jwt-token-123456',
+          user: {
+            id: 1,
+            username: email,
+            email: email,
+            role: 'authenticated'
+          }
+        };
+        console.log('authAPI.login: Моковый ответ');
+        resolve(mockResponse);
+      }, 300);
+    });
+  },
+
+  // Регистрация - мок
+  register: async (userData) => {
+    console.log('authAPI.register: Моковая регистрация:', userData);
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const mockResponse = {
+          success: true,
+          message: 'Регистрация успешна',
+          user: {
+            id: Date.now(),
+            ...userData
+          }
+        };
+        console.log('authAPI.register: Моковый ответ');
+        resolve(mockResponse);
+      }, 300);
+    });
+  },
+
+  // Проверка аутентификации - мок
+  checkAuth: async () => {
+    console.log('authAPI.checkAuth: Моковая проверка аутентификации');
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const mockResponse = {
+          id: 1,
+          username: 'user@example.com',
+          email: 'user@example.com',
+          role: 'authenticated'
+        };
+        console.log('authAPI.checkAuth: Моковый ответ');
+        resolve(mockResponse);
+      }, 200);
+    });
+  },
+
+  // Удаление аккаунта - мок
+  deleteAccount: async () => {
+    console.log('authAPI.deleteAccount: Моковое удаление аккаунта');
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const mockResponse = {
+          success: true,
+          message: 'Аккаунт удален'
+        };
+        console.log('authAPI.deleteAccount: Моковый ответ');
+        resolve(mockResponse);
+      }, 300);
+    });
+  },
+
+  // Обновление профиля - мок
+  updateProfile: async (userData) => {
+    console.log('authAPI.updateProfile: Моковое обновление профиля:', userData);
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const mockResponse = {
+          success: true,
+          message: 'Профиль обновлен',
+          user: userData
+        };
+        console.log('authAPI.updateProfile: Моковый ответ');
+        resolve(mockResponse);
+      }, 300);
+    });
+  },
+
+  // Выход из системы - мок
+  logout: async () => {
+    console.log('authAPI.logout: Моковый выход');
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const mockResponse = {
+          success: true,
+          message: 'Выход выполнен'
+        };
+        console.log('authAPI.logout: Моковый ответ');
+        resolve(mockResponse);
+      }, 200);
+    });
+  }
+};
+
+// Моковый API для заказов
+export const ordersAPI = {
+  // Создать заказ - мок
+  createOrder: async (orderData = {}) => {
+    console.log('📤 ordersAPI.createOrder: Моковый заказ:', orderData);
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const mockResponse = {
+          success: true,
+          order_id: Date.now(),
+          order_number: `ORD-${Date.now()}`,
+          message: 'Заказ успешно создан'
+        };
+        console.log('✅ ordersAPI.createOrder: Моковый заказ создан');
+        resolve(mockResponse);
+      }, 500);
+    });
+  },
+
+  // Получить список заказов - мок
+  getMyOrders: async () => {
+    console.log('ordersAPI.getMyOrders: Моковые заказы');
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const mockOrders = [
+          {
+            id: 1,
+            order_number: 'ORD-001',
+            status: 'completed',
+            total: 4500,
+            created_at: '2024-01-15'
+          },
+          {
+            id: 2,
+            order_number: 'ORD-002',
+            status: 'processing',
+            total: 3200,
+            created_at: '2024-01-16'
+          }
+        ];
+        console.log('ordersAPI.getMyOrders: Моковые заказы возвращены');
+        resolve({ data: mockOrders });
+      }, 300);
+    });
+  },
+
+  // Получить детали заказа - мок
+  getOrder: async (orderId) => {
+    console.log('ordersAPI.getOrder: Моковый заказ по ID:', orderId);
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const mockOrder = {
+          id: orderId,
+          order_number: `ORD-${orderId}`,
+          status: 'completed',
+          total: 4500,
+          created_at: '2024-01-15',
+          items: [
+            {
+              id: 1,
+              product_id: 1,
+              quantity: 2,
+              price: 850
+            },
+            {
+              id: 2,
+              product_id: 2,
+              quantity: 1,
+              price: 320
+            }
+          ]
+        };
+        console.log('ordersAPI.getOrder: Моковый заказ возвращен');
+        resolve({ data: mockOrder });
+      }, 300);
+    });
+  }
+};
+
+// Обновляем функцию для получения URL изображения
 export const getImageUrl = (imageData) => {
-  console.log('🖼️ Получение URL изображения:', imageData);
-
-  if (!imageData) {
-    console.log('❌ Изображение не найдено');
-    return '/default-textile.jpg';
-  }
-
-  // Формат Strapi v4 с глубоким populate
-  if (imageData.data) {
-    // Если это массив (multiple: true)
-    if (Array.isArray(imageData.data) && imageData.data.length > 0) {
-      const url = `http://localhost:1339${imageData.data[0].attributes?.url}`;
-      console.log('✅ URL из массива данных:', url);
-      return url;
-    }
-    // Если это одиночный файл
-    if (imageData.data.attributes?.url) {
-      const url = `http://localhost:1339${imageData.data.attributes.url}`;
-      console.log('✅ URL из одиночных данных:', url);
-      return url;
-    }
-  }
-
-  // Прямой доступ к attributes (альтернативный формат)
-  if (imageData.attributes?.url) {
-    const url = `http://localhost:1339${imageData.attributes.url}`;
-    console.log('✅ URL из прямых attributes:', url);
-    return url;
-  }
-
-  // Прямой URL (для обратной совместимости)
-  if (imageData.url) {
-    const url = imageData.startsWith('http') ? imageData : `http://localhost:1339${imageData}`;
-    console.log('✅ Прямой URL:', url);
-    return url;
-  }
-
-  // Если это строка (старый формат)
+  console.log('🖼️ Получение URL изображения (моковое):', imageData);
+  
   if (typeof imageData === 'string') {
-    const url = imageData.startsWith('http') ? imageData : `http://localhost:1339${imageData}`;
-    console.log('✅ URL из строки:', url);
-    return url;
+    return imageData;
   }
-
-  console.log('❌ Неизвестный формат изображения');
+  
+  if (imageData && imageData.url) {
+    return imageData.url;
+  }
+  
+  if (Array.isArray(imageData) && imageData.length > 0) {
+    return imageData[0].url || '/default-textile.jpg';
+  }
+  
   return '/default-textile.jpg';
 };
 
+// Пустые API для остальных функций (чтобы не было ошибок)
+export const worksAPI = {
+  getAll: async () => ({ data: [] }),
+  getById: async () => ({ data: {} })
+};
 
-// Методы для уведомлений
+export const contactAPI = {
+  sendMessage: async () => ({ success: true, message: 'Сообщение отправлено' })
+};
+
 export const notificationsAPI = {
-  // Получить все уведомления пользователя
-  getNotifications: async (params = {}) => {
-    return api.get('/notifications', {
-      'sort': 'createdAt:desc',
-      ...params
-    }, true);
-  },
+  getNotifications: async () => ({ data: [] }),
+  createNotification: async () => ({ success: true })
+};
 
-  // Получить уведомление по ID
-  getNotification: async (id) => {
-    return api.get(`/notifications/${id}`, {}, true);
-  },
-
-  // Пометить уведомление как прочитанное
-  markAsRead: async (id) => {
-    return api.put(`/notifications/${id}/read`, {}, true);
-  },
-
-  // Пометить все уведомления как прочитанные
-  markAllAsRead: async () => {
-    return api.put('/notifications/read-all', {}, true);
-  },
-
-  // Получить количество непрочитанных уведомлений
-  getUnreadCount: async () => {
-    return api.get('/notifications/unread/count', {}, true);
-  }
+export const adminAPI = {
+  // Пустые методы для админки
+  getProducts: async () => ({ data: [] }),
+  getStats: async () => ({ data: {} })
 };
 
 export default api;

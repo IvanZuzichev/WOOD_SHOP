@@ -1,24 +1,25 @@
+@charset "UTF-8";
 .productGrid {
   display: grid;
-  gap: 16px;
+  gap: 20px;
   width: 100%;
 }
 
-/* Мобильные устройства (до 743px) - 2 колонки, 2 товара */
-.productGrid {
-  grid-template-columns: repeat(2, 1fr);
-}
-
-/* Планшеты (744px - 1439px) - 3 колонки, 3 товара */
-@media (min-width: 744px) {
-  .productGrid {
-    grid-template-columns: repeat(3, 1fr);
-  }
-}
-
-/* Десктоп (1440px и выше) - 4 колонки, 4 товара */
+/* Для десктопа: 4 колонки */
 @media (min-width: 1440px) {
   .productGrid {
     grid-template-columns: repeat(4, 1fr);
   }
 }
+/* Для планшета: 3 колонки */
+@media (min-width: 744px) and (max-width: 1439px) {
+  .productGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+/* Для телефона: 2 колонки */
+@media (max-width: 743px) {
+  .productGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}/*# sourceMappingURL=ProductSection.module.css.map */

@@ -1,7 +1,7 @@
+@charset "UTF-8";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
 /* Кастомные transition для плавности */
 .transition-all {
   transition: all 0.3s ease-in-out;
@@ -27,9 +27,9 @@
 }
 
 .tabletLink:hover {
-  border-color: #9B1E1C;
+  border-color: #432928;
   background-color: white;
-  color: #9B1E1C;
+  color: #340A09;
 }
 
 /* Анимация появления планшетной строки */
@@ -38,9 +38,8 @@
     opacity: 0;
     transform: translateY(-10px);
   }
-
   to {
     opacity: 1;
     transform: translateY(0);
   }
-}
+}/*# sourceMappingURL=Navbar.module.css.map */
