@@ -1,15 +1,7 @@
 🌲 WOOD SHOP - Интернет-магазин пиломатериалов и стройматериалов
 <div align="center">
-https://img.shields.io/badge/WOOD-SHOP-brightgreen?style=for-the-badge&logo=forestry&logoColor=white
-https://img.shields.io/badge/React-18.2-blue?style=for-the-badge&logo=react
-https://img.shields.io/badge/TypeScript-5.2-blue?style=for-the-badge&logo=typescript
-https://img.shields.io/badge/Docker-24.0-blue?style=for-the-badge&logo=docker
-https://img.shields.io/badge/Git-2.42-orange?style=for-the-badge&logo=git
 
 Полнофункциональный интернет-магазин для продажи пиломатериалов, строительных материалов и инструментов
-
-https://img.shields.io/badge/%F0%9F%93%BA-%D0%A1%D0%BC%D0%BE%D1%82%D1%80%D0%B5%D1%82%D1%8C_%D0%B4%D0%B5%D0%BC%D0%BE-red?style=for-the-badge
-https://img.shields.io/badge/%F0%9F%90%9B-%D0%A1%D0%BE%D0%BE%D0%B1%D1%89%D0%B8%D1%82%D1%8C_%D0%BE%D0%B1_%D0%BE%D1%88%D0%B8%D0%B1%D0%BA%D0%B5-red?style=for-the-badge
 
 </div>
 📋 О проекте
@@ -45,30 +37,30 @@ WOOD SHOP - это личный pet-проект, созданный с нуля
 Frontend
 <div align="center">
 Технология	Назначение	Версия
-https://img.shields.io/badge/React-20232A?style=flat-square&logo=react&logoColor=61DAFB	UI библиотека	18.2+
-https://img.shields.io/badge/TypeScript-007ACC?style=flat-square&logo=typescript&logoColor=white	Статическая типизация	5.2+
-https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=flat-square&logo=tailwind-css&logoColor=white	Tailwind, SCSS, SASS, CSS фреймворк	3.3+
-https://img.shields.io/badge/React_Router-CA4245?style=flat-square&logo=react-router&logoColor=white	Маршрутизация	6.14+
-https://img.shields.io/badge/MobX-FF9955?style=flat-square&logo=mobx&logoColor=white	Управление состоянием	6.9+
-https://img.shields.io/badge/Axios-5A29E4?style=flat-square&logo=axios&logoColor=white	HTTP клиент	1.4+
+	UI библиотека	18.2+
+	Статическая типизация	5.2+
+	Tailwind, SCSS, SASS, CSS фреймворк	3.3+
+	Маршрутизация	6.14+
+	Управление состоянием	6.9+
+	HTTP клиент	1.4+
 </div>
 Backend
 <div align="center">
 Технология	Назначение	Версия
-https://img.shields.io/badge/Node.js-339933?style=flat-square&logo=nodedotjs&logoColor=white	Серверная платформа	18+
-https://img.shields.io/badge/Express.js-000000?style=flat-square&logo=express&logoColor=white	Веб фреймворк	4.18+
-https://img.shields.io/badge/PostgreSQL-316192?style=flat-square&logo=postgresql&logoColor=white	База данных	15+
-https://img.shields.io/badge/JWT-000000?style=flat-square&logo=JSON%2520web%2520tokens&logoColor=white	Аутентификация	9.0+
-https://img.shields.io/badge/Swagger-85EA2D?style=flat-square&logo=Swagger&logoColor=black	Документация API	4.19+
+	Серверная платформа	18+
+	Веб фреймворк	4.18+
+	База данных	15+
+	Аутентификация	9.0+
+	Документация API	4.19+
 </div>
 Инфраструктура
 <div align="center">
 Технология	Назначение	Версия
-https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white	Контейнеризация	24.0+
-https://img.shields.io/badge/Git-F05032?style=flat-square&logo=git&logoColor=white	Контроль версий	2.42+
-https://img.shields.io/badge/Figma-F24E1E?style=flat-square&logo=figma&logoColor=white	Дизайн интерфейса	-
-https://img.shields.io/badge/ESLint-4B3263?style=flat-square&logo=eslint&logoColor=white	Линтинг кода	8.45+
-https://img.shields.io/badge/Prettier-F7B93E?style=flat-square&logo=prettier&logoColor=black	Форматирование кода	3.0+
+	Контейнеризация	24.0+
+	Контроль версий	2.42+
+	Дизайн интерфейса	-
+	Линтинг кода	8.45+
+	Форматирование кода	3.0+
 </div>
 🚀 Быстрый старт
 ⚙️ Предварительные требования
@@ -84,7 +76,7 @@ npm 9.0+ или yarn 1.22+
 Вариант 1: Через Docker (рекомендуется)
 bash
 # 1️⃣ Клонировать репозиторий
-git clone https://github.com/IvanZuzichev/wood-shop.git
+git clone https://github.com/IvanZuzichev/WOOD_SHOP.git
 cd wood-shop
 
 # 2️⃣ Запустить в режиме разработки
@@ -95,7 +87,7 @@ npm run docker:dev
 Вариант 2: Локальная установка
 bash
 # 1️⃣ Клонировать репозиторий
-git clone https://github.com/IvanZuzichev/wood-shop.git
+git clone https://github.com/IvanZuzichev/WOOD_SHOP.git
 cd wood-shop
 
 # 2️⃣ Установить зависимости
@@ -116,8 +108,8 @@ npm run docker:build-prod
 npm run docker:up-prod
 
 # Приложение будет доступно на порту 3001
-# 🌐 http://localhost:3001
-📁 Структура проекта
+# 🌐 http://localhost:3000
+<pre>📁 Структура проекта
 bash
 wood-shop/
 ├── 📂 src/                           # Исходный код
@@ -198,6 +190,7 @@ wood-shop/
 ├── 📜 tsconfig.json                # Конфигурация TypeScript
 ├── 📜 tailwind.config.js           # Конфигурация Tailwind
 └── 📜 README.md                    # Этот файл
+</pre>
 🐳 Docker команды
 <div align="center">
 Команда	Описание	Пример
@@ -216,31 +209,7 @@ npm run docker:down	Остановка контейнеров	npm run docker:dow
 npm run docker:clean	Очистка Docker	npm run docker:clean
 npm run docker:logs	Просмотр логов	npm run docker:logs
 </div>
-🔧 Доступные скрипты
-json
-{
-  "scripts": {
-    "dev": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject",
-    "lint": "eslint src --ext .ts,.tsx",
-    "format": "prettier --write \"src/**/*.{ts,tsx,css,scss}\"",
-    "type-check": "tsc --noEmit",
-    "docker:build": "docker build -t woodshop:latest .",
-    "docker:dev": "docker-compose up app-dev",
-    "docker:prod": "docker-compose up app-prod",
-    "docker:test": "docker-compose up app-test",
-    "docker:lint": "docker-compose up app-lint",
-    "docker:type-check": "docker-compose up app-type-check",
-    "docker:down": "docker-compose down",
-    "docker:clean": "docker system prune -af",
-    "docker:logs": "docker logs -f woodshop-dev",
-    "docker:build-prod": "docker-compose -f docker-compose.prod.yml build",
-    "docker:up-prod": "docker-compose -f docker-compose.prod.yml up -d",
-    "docker:stop-prod": "docker-compose -f docker-compose.prod.yml down"
-  }
-}
+
 🌐 Функциональность
 ✅ Для пользователей
 Просмотр каталога товаров с категориями
@@ -405,15 +374,11 @@ chore:    Изменения в сборке, зависимостях
 
 Не предназначено для коммерческого использования без разрешения автора.
 
-https://img.shields.io/badge/License-MIT-green.svg
-
 </div>
 👨‍💻 Автор
 <div align="center">
 Зюзичев Иван
 FullStack разработчик | React/TypeScript специалист
-
-<table> <tr> <td align="center" width="100px"> <img src="https://img.shields.io/badge/👨‍💻-FullStack_Developer-blue" alt="Developer"> </td> <td align="center" width="100px"> <img src="https://img.shields.io/badge/🎯-React_Expert-blue" alt="React Expert"> </td> <td align="center" width="100px"> <img src="https://img.shields.io/badge/📱-Mobile_Dev-purple" alt="Mobile Developer"> </td> <td align="center" width="100px"> <img src="https://img.shields.io/badge/🐳-Docker_Master-blue" alt="Docker Master"> </td> </tr> </table></div>
 📬 Контакты
 <div align="center">
 Платформа	Ссылка	Описание
